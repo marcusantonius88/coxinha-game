@@ -1,0 +1,18 @@
+{
+  "name": "coxinha-game",
+  "version": "0.1.0",
+  "description": "Coxinha Game - playable core with TypeScript and Phaser",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vite": "^5.4.0"
+  },
+  "dependencies": {
+    "phaser": "^3.80.0"
+  }
+}
