@@ -1,4 +1,4 @@
-# Spec
+# jogo-inicial Specification
 
 ## Purpose
 
@@ -6,7 +6,7 @@ Configurar o projeto 2D para navegador utilizando TypeScript, Phaser 3 e Vite e 
 
 Esta change tem como objetivo validar a infraestrutura inicial do jogo e a mecânica básica de movimentação. Não contempla a implementação do personagem definitivo Coxinha nem outras mecânicas do jogo.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Projeto configurado para Phaser com TypeScript
 
@@ -22,17 +22,22 @@ O projeto SHALL possuir um comando de desenvolvimento que inicie o servidor loca
 
 ### Requirement: Cena inicial jogável
 
-O sistema SHALL possuir uma cena inicial Phaser contendo um personagem temporário e uma plataforma que funcione como chão.
+A cena inicial SHALL possuir um personagem e uma plataforma que funcione como chão.
 
-O personagem SHALL possuir física ARCADE e gravidade aplicada.
+O personagem SHALL utilizar `assets/coxinha/coxinha-idle.png` como representação visual estática, substituindo a representação geométrica temporária anterior.
+
+`assets/coxinha/coxinha-sprite-sheet.png` permanece no projeto como asset para uso futuro e não participa da implementação desta change.
 
 #### Scenario: Cena inicial carregada
 
 - **WHEN** a cena inicial é carregada
-- **THEN** o personagem temporário é exibido acima da plataforma
-- **AND** a plataforma é exibida como superfície de suporte
+- **THEN** o personagem Coxinha é exibido acima da plataforma
+- **AND** a pose exibida é `IDLE`
+- **AND** a plataforma funciona como superfície de suporte
 - **AND** o personagem é afetado pela gravidade
 - **AND** o personagem permanece sobre a plataforma quando estiver em contato com ela
+- **AND** os controles existentes continuam funcionando
+- **AND** os limites horizontais da área de jogo continuam sendo respeitados
 
 ### Requirement: Personagem temporário controlável
 
@@ -122,11 +127,3 @@ O sistema SHALL impedir que o personagem ultrapasse os limites horizontais da á
 
 - **WHEN** o personagem tenta ultrapassar o limite direito da área de jogo
 - **THEN** o personagem permanece dentro da área visível
-
-## REMOVED Requirements
-
-<!-- Nenhuma -->
-
-## MODIFIED Requirements
-
-<!-- Nenhuma -->
