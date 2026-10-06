@@ -4,6 +4,9 @@ import coxinhaIdleUrl from '../../assets/coxinha/coxinha-idle.png';
 export class GameScene extends Phaser.Scene {
   private playerBody!: Phaser.GameObjects.Rectangle;  // corpo físico (invisível)
   private playerVisual!: Phaser.GameObjects.Image;    // representação visual
+  private enemy!: Phaser.GameObjects.Rectangle;       // primeiro inimigo (hitbox própria)
+  private enemyCollider!: Phaser.Physics.Arcade.Collider;
+  private enemyDefeated = false;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private shiftKey!: Phaser.Input.Keyboard.Key;
 
@@ -41,6 +44,20 @@ export class GameScene extends Phaser.Scene {
     // Collision between player body and ground
     this.physics.add.collider(this.playerBody, ground);
 
+    // --- Inimigo base (primeiro inimigo da cena, permanece parado) ---
+    // Retângulo temporário 40x40 (nenhum asset de inimigo existe no projeto).
+    // Topo da plataforma = 560 - 10/2 = 555 => centro y = 555 - 40/2 = 535.
+    // Posicionado à direita do ponto de aparição do Coxinha (x: 400).
+    this.enemy = this.add.rectangle(600, 535, 40, 40, 0x2e8b57);
+    this.physics.add.existing(this.enemy, true); // corpo estático: inimigo parado
+
+    // Colisão sólida em todas as direções; a callback decide se é uma pisada.
+    this.enemyCollider = this.physics.add.collider(
+      this.playerBody,
+      this.enemy,
+      () => this.handleEnemyContact()
+    );
+
     // --- Input ---
     this.cursors = this.input!.keyboard!.createCursorKeys();
     this.shiftKey = this.input!.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
@@ -77,5 +94,49 @@ export class GameScene extends Phaser.Scene {
     ) {
       body.setVelocityY(jumpForce);
     }
+  }
+
+  /**
+   * Chamada durante a colisão Coxinha x inimigo (física).
+   * Derrota o inimigo somente na pisada: contato pelo topo combinado com
+   * aproximação de cima. Colisão lateral ou por baixo não derrota.
+   */
+  private handleEnemyContact(): void {
+    // Flag anti-reprocessamento: após a derrota a colisão não pode reexecutar a lógica.
+    if (this.enemyDefeated || !this.enemy.active) {
+      return;
+    }
+
+    const playerBody = this.playerBody.body as unknown as Phaser.Physics.Arcade.Body;
+    const enemyBody = this.enemy.body as Phaser.Physics.Arcade.StaticBody | undefined;
+    if (!enemyBody) {
+      return;
+    }
+
+    // Contato pelo topo: base do Coxinha voltada para baixo e topo do inimigo atingido.
+    // (No mesmo passo da física o contato lateral define left/right, e o contato
+    // por baixo define up/down invertido — não passam aqui.)
+    const contatoPeloTopo = playerBody.touching.down && enemyBody.touching.up;
+
+    // A aproximação veio de cima: no início deste frame a base do Coxinha ainda
+    // estava acima do topo do inimigo (tolerância cobre a penetração do passo).
+    // Impede falsos positivos de canto em abordagens laterais.
+    const tolerancia = 8;
+    const estavaAcima =
+      playerBody.prev.y + playerBody.height <= enemyBody.top + tolerancia;
+
+    if (!contatoPeloTopo || !estavaAcima) {
+      // Colisão lateral ou por baixo: inimigo permanece na cena.
+      return;
+    }
+
+    // Pisada confirmada: derrota o inimigo (deixa de ser exibido e de colidir).
+    this.enemyDefeated = true;
+    this.enemyCollider.active = false;
+    this.enemy.destroy();
+
+    // Impulso para cima menor que o salto normal (-400). O inimigo estático
+    // zera a velocidade na separação, então aplicamos o impulso em seguida.
+    playerBody.setVelocityY(-300);
   }
 }
