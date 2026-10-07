@@ -4,18 +4,17 @@
 
 Ver `proposal.md` (Why). Estado atual relevante:
 
-- Gravidade global `arcade.gravity.y = 300` em `src/main.ts`.
-- Força do salto `jumpForce = -400` em `src/scenes/GameScene.ts` (`update()`).
-- Impulso da pisada `setVelocityY(-300)` em `handleEnemyContact()`.
-- Com a física de projectile de Arcade: `altura = v0²/(2g)` e `tempo total = 2·v0/g` → hoje ~267 px e ~2,67 s no ar.
+- Estado original (antes desta change): gravidade `300`, `jumpForce = -400`, pisada `setVelocityY(-300)` → ~267 px e ~2,67 s no ar (medido 263 px / 2,665 s).
+- Estado da 1ª iteração (já aplicada no working tree): `jumpForce = -800`, `arcade.gravity.y = 1330`, pisada `-600` → medido salto **1,189 s / 233 px** (teórico 1,20 s / 241 px) e bounce **130 px** (teórico 135 px; relação 0,56). No teste manual a permanência no ar ainda pareceu um pouco lenta.
+- Fórmulas de projectile do Arcade: `altura = v0²/(2g)` e `tempo total = 2·v0/g`; invertidas para calibração: `g = 8·h/T²` e `v0 = 4·h/T`.
 - Apenas o Coxinha é corpo dinâmico; plataforma e inimigo são estáticos.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Alinhar o salto ao preset **Equilibrado** aprovado: ~1,2 s no ar (faixa 1,0–1,4 s) e ~240 px de altura (faixa 220–260 px).
-- Manter a mecânica de pisada com a mesma sensação relativa (bounce proporcional ao salto, mesma relação de alturas ~0,56).
+- Refinar o salto para ~1,0 s no ar (faixa 0,9–1,1 s) e ~225 px de altura (faixa 220–230 px): mais responsivo, sem torná-lo excessivamente baixo ou brusco.
+- Manter a mecânica de pisada com a mesma sensação relativa (bounce proporcional ao salto, relação de alturas ~0,56; bounce ~130 px teórico / ~125 px medido).
 - Manter os valores de física explicados junto ao código (comentários) para futuras changes.
 
 **Non-Goals:**
@@ -26,24 +25,24 @@ Ver `proposal.md` (Why). Estado atual relevante:
 
 ## Decisions
 
-1. **Aumentar `v0` e gravidade em conjunto** — Reduzir o tempo mantendo a altura exige escalar os dois: com gravidade 300 fixa, manter 240 px implicaria `v0 ≈ -379` e tempo ≈2,5 s (continua lento); aumentar só a gravidade com `v0 = -400` derrubaria a altura para ~60 px. Alternativa descartada: manter `v0 = -400` e só encher gravidade.
-2. **Valores: `jumpForce = -800`, gravidade `y = 1330`** — `T = 1600/1330 ≈ 1,20 s`, `h = 640000/2660 ≈ 241 px`, dentro das faixas do spec com folga para integração quadro a quadro. Alternativas consideradas: `g = 1333` (idêntico na prática), `g = 1350`/`v0 = -810` (faixa mais folgada no tempo, menos na altura) — refinar na medição se necessário.
-3. **Impulso da pisada: `-600`** — mantém a razão atual 0,75 (`-300/-400`) em relação à força do salto, e com a nova gravidade dá bounce de ~135 px / ~0,9 s — relação de altura bounce/salto ≈0,56 idêntica à de hoje (150/267). Alternativa descartada (aprovada pelo usuário como opção): manter `-300` fixo → bounce de apenas ~26 px, sensação de pisada fraca.
-4. **Constantes nos pontos atuais** — `jumpForce` na `update()`, gravidade no config do Phaser, impulso da pisada em `handleEnemyContact()`, cada um com comentário relacionando-os ("razão 0,75 com jumpForce"). Alternativa: arquivo único de constantes de física — postergada (Non-Goal), não altera comportamento observável.
-5. **Validação por medição real** — calibrar/confirmar com medição no navegador (tempo do salto pleno e apogeu), reaproveitando a abordagem de automação via CDP usada na change `inimigo-base`.
+1. **Recalcular `v0` e gravidade em conjunto a partir dos novos alvos** — Fixar T = 1,0 s e h = 230 px (topo da faixa 220–230 px; folga para o déficit sistemático de ~4–8 px da amostragem do apogeu observado na medição) e aplicar `g = 8h/T²`, `v0 = 4h/T`. Com `g = 1330` fixa, T = 1,0 s exigiria `v0 = 665` → h ≈ 166 px (fora da faixa); reduzir só `v0` derruba a altura. Alternativa descartada: manter os valores da 1ª iteração (`-800`/`1330` → 1,2 s), rejeitada no teste manual como ainda lenta.
+2. **Valores: `jumpForce = -920`, gravidade `y = 1840`** — `T = 2·920/1840 = 1,000 s`, `h = 920²/3680 = 230 px` teórico → medido esperado ~222–227 px, dentro de 220–230 px. Alternativas consideradas e descartadas: `900`/`1800` (h teórico 225 px — o medido correria risco de furar o piso de 220 px pelo déficit de amostragem); `v0 = -928`, `g = 1856` (h teórico 232 px — reserva maior, números menos redondos; usar só se a medição ficar marginamente abaixo).
+3. **Impulso da pisada: `-690`** — mantém a razão histórica 0,75 (`-300/-400`) em relação à força do salto (`0,75 × 920 = 690`). Com a nova gravidade dá bounce de ~129 px teórico / ~125 px medido e voo de ~0,75 s, mantendo a relação de alturas bounce/salto = 0,75² = 0,5625 ≈ 0,56 — bounce pequeno e controlado. Alternativas descartadas: manter `-600` (razão 0,65 → bounce ~98 px, sensação de pisada mais fraca que a histórica); `-300` fixo (bounce ~25 px, pisada quase sem retorno).
+4. **Constantes nos pontos atuais** — `jumpForce` na `update()`, gravidade no config do Phaser, impulso da pisada em `handleEnemyContact()`, cada um com comentário relacionando-os ("razão 0,75 com jumpForce") atualizado para os novos valores. Alternativa: arquivo único de constantes de física — postergada (Non-Goal), não altera comportamento observável.
+5. **Validação por medição real** — calibrar/confirmar com medição no navegador (tempo do salto pleno e apogeu), reaproveitando a abordagem de automação via CDP usada nas medições desta change (3 réplicas com mediana e correção de lacunas).
 
 ## Risks / Trade-offs
 
-- [Queda mais rápida aproxima o Coxinha do inimigo por mais px por quadro (~13 px/quadro a 60 fps vs ~7 hoje), reduzindo a margem da detecção de pisada (`prev.y + height <= top + 8`)] → a janela ainda cobre penetrações até ~21 px/quadro; validar a pisada em teste real; só ajustar a tolerância se o teste falhar (mudança de detalhe, não de comportamento).
-- [O baseline relatado (~4 s) difere do teórico (~2,67 s)] → medir o comportamento atual antes de alterar qualquer parâmetro; se o valor real divergir da teoria, investigar a causa antes de calibrar os alvos.
+- [Queda mais rápida aproxima o Coxinha do inimigo por mais px por quadro (~15 px/quadro na queda livre com v final ≈ 920 px/s a 60 fps, vs ~13 na 1ª iteração e ~7 no original), reduzindo a margem da detecção de pisada (`prev.y + height <= top + 8`)] → a janela ainda cobre penetrações até ~23 px/quadro; validar a pisada em teste real; só ajustar a tolerância se o teste falhar (mudança de detalhe, não de comportamento).
+- [O baseline relatado (~4 s) difere do teórico (~2,67 s)] → resolvido na 1ª iteração: medido 2,665 s / 263 px (ver tasks 1.1/1.2); manter a medição real como fonte de verdade na validação do refino.
 - [Gravidade é global no `main.ts` e afeta todo corpo dinâmico futuro] → aceitável e esperado; hoje só o jogador é dinâmico, sem efeito colateral.
-- [Precisão de medição em navegador (latência de tecla, 60 fps)] → faixas de aceitação no spec (1,0–1,4 s; 220–260 px) já absorvem a variabilidade; alvos de projeto são ~1,2 s/~240 px.
-- [Sensação de "queda pesada" com gravidade 4,4× maior] → se o pulo parecer pesado na validação manual, ajustar dentro das faixas (ex.: `v0 = -840`, `g = 1470` mantém ~240 px com tempo ~1,14 s).
+- [Precisão de medição em navegador (latência de tecla, cadência de captura)] → faixas de aceitação no spec (0,9–1,1 s; 220–230 px) absorvem a variabilidade observada: a medição com 3 réplicas, mediana e correção de lacunas divergiu ~−0,01 s e ~−8 px do teórico na 1ª iteração; alvos de projeto são ~1,0 s / ~225 px.
+- [Sensação de "queda pesada" com gravidade ~6× maior que a original] → se o pulo parecer brusco na validação manual, reajustar mantendo T = 1,0 s dentro das faixas (com T fixa, `v0 = 4h` e `g = 8h`; ex.: h = 220 px → `v0 = -880`, `g = 1760`).
 
 ## Migration Plan
 
-Troca de três constantes numéricas; rollback = rever o commit. Build estático, sem migração de dados ou configuração de ambiente.
+Ajuste de três constantes numéricas (da 1ª iteração para os valores refinados); rollback = reverter o commit. Build estático, sem migração de dados ou configuração de ambiente.
 
 ## Open Questions
 
-(nenhuma — o preset foi aprovado pelo usuário durante o propose; a discrepância do baseline é tratada como risco com tarefa de medição dedicada.)
+(nenhuma — os alvos refinados (~1,0 s / 220–230 px) foram definidos pelo usuário após o teste manual da 1ª iteração; os valores numéricos derivaram das equações de projectile e ficam sujeitos à confirmação por medição na validação do refino.)
