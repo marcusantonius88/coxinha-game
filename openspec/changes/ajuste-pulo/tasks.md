@@ -27,12 +27,12 @@
 
 ## 5. Refino dos alvos (após teste manual — permanência no ar ~1,0 s)
 
-- [ ] 5.1 Alterar `jumpForce` de `-800` para `-920` em `src/scenes/GameScene.ts`, atualizando o comentário para o novo alvo (gravidade 1840, T ≈ 1,0 s, h teórico 230 px) — verificação: `npm run build` passa e o diff mostra apenas a constante do salto alterada
-- [ ] 5.2 Alterar `arcade.gravity.y` de `1330` para `1840` em `src/main.ts`, atualizando o comentário para o alvo refinado — verificação: `npm run build` passa e o diff mostra apenas a gravidade alterada
-- [ ] 5.3 Alterar o impulso da pisada de `-600` para `-690` em `handleEnemyContact()` em `src/scenes/GameScene.ts`, mantendo o comentário da razão 0,75 em relação ao `jumpForce` — verificação: `npm run build` passa e o diff mostra apenas a constante do impulso alterada
-- [ ] 5.4 Executar `npm run build` após as alterações e confirmar exit code 0 — verificação: compila sem erros
-- [ ] 5.5 Medir o salto pleno no navegador e confirmar tempo total entre 0,9 e 1,1 s (alvo ~1,0 s) e altura entre 220 e 230 px (alvo ~225 px) — verificação: medições dentro das faixas do spec
-- [ ] 5.6 Validar a pisada no inimigo: derrota o inimigo, bounce ~125 px medido (faixa 90–155 px; teórico ~129 px) e sem segundo salto no ar — verificação: comportamento observado no navegador
-- [ ] 5.7 Regressão de preservação: velocidade normal/corrida, controles (`ArrowLeft`/`ArrowRight`/`ArrowUp`/`Space`/`Shift`), colisão com a plataforma, limites horizontais, HUD e ausência de erros de console intactos — verificação: harness de regressão com 23/23 checks
-- [ ] 5.8 Executar `openspec validate ajuste-pulo --strict` e `openspec status --change ajuste-pulo` após as alterações — verificação: change válida e artefatos proposal/specs/design/tasks completos
+- [x] 5.1 Alterar `jumpForce` de `-800` para `-920` em `src/scenes/GameScene.ts`, atualizando o comentário para o novo alvo (gravidade 1840, T ≈ 1,0 s, h teórico 230 px) — verificação: `npm run build` passa e o diff mostra apenas a constante do salto alterada
+- [x] 5.2 Alterar `arcade.gravity.y` de `1330` para `1840` em `src/main.ts`, atualizando o comentário para o alvo refinado — verificação: `npm run build` passa e o diff mostra apenas a gravidade alterada
+- [x] 5.3 Alterar o impulso da pisada de `-600` para `-690` em `handleEnemyContact()` em `src/scenes/GameScene.ts`, mantendo o comentário da razão 0,75 em relação ao `jumpForce` — verificação: `npm run build` passa e o diff mostra apenas a constante do impulso alterada
+- [x] 5.4 Executar `npm run build` após as alterações e confirmar exit code 0 — verificação: compila sem erros
+- [x] 5.5 Medir o salto pleno no navegador e confirmar tempo total entre 0,9 e 1,1 s (alvo ~1,0 s) e altura entre 220 e 230 px (alvo ~225 px) — verificação: medições dentro das faixas do spec
+- [x] 5.6 Validar a pisada no inimigo: derrota o inimigo, bounce ~125 px medido (faixa 90–155 px; teórico ~129 px) e sem segundo salto no ar — verificação: comportamento observado no navegador
+- [x] 5.7 Regressão de preservação: velocidade normal/corrida, controles (`ArrowLeft`/`ArrowRight`/`ArrowUp`/`Space`/`Shift`), colisão com a plataforma, limites horizontais, HUD e ausência de erros de console intactos — verificação: harness de regressão com 23/23 checks
+- [x] 5.8 Executar `openspec validate ajuste-pulo --strict` e `openspec status --change ajuste-pulo` após as alterações — verificação: change válida e artefatos proposal/specs/design/tasks completos
 

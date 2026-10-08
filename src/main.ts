@@ -10,7 +10,7 @@ const config: Phaser.Types.Core.GameConfig = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { x: 0, y: 1330 }, // Preset Equilibrado: pareado com jumpForce=-800 (GameScene.ts) → ~1,2 s no ar / ~240 px
+      gravity: { x: 0, y: 1840 }, // Alvo refinado: pareado com jumpForce=-920 (GameScene.ts) → 1,0 s no ar / 230 px teórico (~225 px medido)
     },
   },
   scene: [GameScene],

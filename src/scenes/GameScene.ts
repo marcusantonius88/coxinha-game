@@ -74,7 +74,7 @@ export class GameScene extends Phaser.Scene {
 
     const normalSpeed = 200;
     const runSpeed = 350;
-    const jumpForce = -800; // Preset Equilibrado: com gravity.y=1330 (main.ts) → ~1,2 s no ar / ~240 px
+    const jumpForce = -920; // Alvo refinado: com gravity.y=1840 (main.ts) → 1,0 s no ar / 230 px teórico (~225 px medido)
 
     // --- Horizontal movement ---
     if (this.cursors.left.isDown) {
@@ -135,9 +135,9 @@ export class GameScene extends Phaser.Scene {
     this.enemyCollider.active = false;
     this.enemy.destroy();
 
-    // Impulso para cima menor que o salto normal (-800), razão 0,75
-    // (preset Equilibrado: -600/-800). O inimigo estático
+    // Impulso para cima menor que o salto normal (-920), razão 0,75
+    // (-690/-920). O inimigo estático
     // zera a velocidade na separação, então aplicamos o impulso em seguida.
-    playerBody.setVelocityY(-600);
+    playerBody.setVelocityY(-690);
   }
 }
