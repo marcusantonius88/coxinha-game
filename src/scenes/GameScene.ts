@@ -1,26 +1,85 @@
 import Phaser from 'phaser';
-import coxinhaIdleUrl from '../../assets/coxinha/coxinha-idle.png';
+import idleSheetUrl from '../../assets/coxinha/animations/coxinha_idle_spritesheet.png';
+import walkSheetUrl from '../../assets/coxinha/animations/coxinha_walk_spritesheet.png';
+import runSheetUrl from '../../assets/coxinha/animations/coxinha_run_spritesheet.png';
+import jumpSheetUrl from '../../assets/coxinha/animations/coxinha_jump_spritesheet.png';
+import fallSheetUrl from '../../assets/coxinha/animations/coxinha_fall_spritesheet.png';
+import landSheetUrl from '../../assets/coxinha/animations/coxinha_land_spritesheet.png';
+
+/** Estados de animação do Coxinha (chaves de animação registradas no Phaser). */
+type CoxinhaAnim = 'idle' | 'walk' | 'run' | 'jump' | 'fall' | 'land';
+
+/** Definição de uma spritesheet aprovada e da animação correspondente. */
+interface CoxinhaSheetDef {
+  anim: CoxinhaAnim;
+  frames: number;    // quantidade de quadros da spritesheet (0-based no loader)
+  frameRate: number; // FPS da animação
+  repeat: number;    // -1 = loop; 0 = reprodução única (LAND)
+  url: string;
+}
+
+// Spritesheets aprovadas em assets/coxinha/animations/ (PNG RGBA, células 48×32 px).
+const FRAME_WIDTH = 48;
+const FRAME_HEIGHT = 32;
+
+// Linha de base dos pés: o pixel opaco mais baixo de todos os quadros é a linha
+// y=30 (y=31 fica transparente). A origem 31/32 alinha a base dos pés com
+// body.bottom — mesmo efeito do ajuste 908/1024 do asset anterior, que
+// compensava o padding transparente inferior do PNG.
+const VISUAL_ORIGIN_Y = 31 / 32;
+
+// Escala inteira ×2: caixa exibida 96×64 px, idêntica à do Coxinha anterior.
+const VISUAL_SCALE = 2;
+
+const SHEET_DEFS: readonly CoxinhaSheetDef[] = [
+  { anim: 'idle', frames: 4, frameRate: 6, repeat: -1, url: idleSheetUrl },
+  { anim: 'walk', frames: 8, frameRate: 10, repeat: -1, url: walkSheetUrl },
+  { anim: 'run', frames: 8, frameRate: 14, repeat: -1, url: runSheetUrl },
+  { anim: 'jump', frames: 6, frameRate: 8, repeat: -1, url: jumpSheetUrl },
+  { anim: 'fall', frames: 4, frameRate: 8, repeat: -1, url: fallSheetUrl },
+  { anim: 'land', frames: 4, frameRate: 12, repeat: 0, url: landSheetUrl },
+];
+
+/** Chave de textura de uma spritesheet (separada da chave da animação). */
+function sheetKey(anim: CoxinhaAnim): string {
+  return `${anim}-sheet`;
+}
 
 export class GameScene extends Phaser.Scene {
   private playerBody!: Phaser.GameObjects.Rectangle;  // corpo físico (invisível)
-  private playerVisual!: Phaser.GameObjects.Image;    // representação visual
+  private playerVisual!: Phaser.GameObjects.Sprite;   // representação visual (sprite animado)
   private enemy!: Phaser.GameObjects.Rectangle;       // primeiro inimigo (hitbox própria)
   private enemyCollider!: Phaser.Physics.Arcade.Collider;
   private enemyDefeated = false;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private shiftKey!: Phaser.Input.Keyboard.Key;
 
+  /** Animação atualmente exibida — guarda anti-restart da mesma animação. */
+  private currentAnim: CoxinhaAnim | null = null;
+  /** true enquanto o corpo está no ar (detecção da transição ar → chão). */
+  private wasAirborne = false;
+  /** true enquanto a aterrissagem (LAND) estiver pendente de exibição. */
+  private landPending = false;
+
   constructor() {
     super({ key: 'GameScene' });
   }
 
   preload(): void {
-    // Carregar imagem única da pose IDLE do Coxinha.
-    // URL resolvida/emitida pelo Vite para garantir o asset no build de produção.
-    this.load.image('coxinha-idle', coxinhaIdleUrl);
+    // Carrega as spritesheets aprovadas do Coxinha (células 48×32 px, RGBA).
+    // URLs resolvidas/emitidas pelo Vite para garantir os assets no build de produção.
+    for (const def of SHEET_DEFS) {
+      this.load.spritesheet(sheetKey(def.anim), def.url, {
+        frameWidth: FRAME_WIDTH,
+        frameHeight: FRAME_HEIGHT,
+      });
+    }
   }
 
   create(): void {
+    // --- Animações do protagonista (6 estados, FPS e repeat definidos acima) ---
+    this.createAnimations();
+
     // --- Corpo físico invisível (hitbox 30x30 preservada do jogo-inicial) ---
     this.playerBody = this.add.rectangle(400, 500, 30, 30);
     this.playerBody.setVisible(false);
@@ -29,13 +88,18 @@ export class GameScene extends Phaser.Scene {
     body.setCollideWorldBounds(true);
     body.setVelocity(0);
 
-    // --- Representação visual separada (imagem Coxinha, segue o corpo) ---
-    // Origem no "pé" do Coxinha dentro do PNG (linha 908 de 1024), compensando
-    // o padding transparente inferior do asset (~115px) sem alterar a hitbox.
-    this.playerVisual = this.add.image(400, 515, 'coxinha-idle');
-    this.playerVisual.setOrigin(0.5, 908 / 1024);
-    // Escala uniforme (asset 1536x1024 -> 96x64), preservando a proporção 3:2.
-    this.playerVisual.setScale(64 / 1024);
+    // --- Representação visual separada (sprite animado Coxinha, segue o corpo) ---
+    // Sprite 48×32 com a origem alinhando a base dos pés (linha y=30 do frame)
+    // na base do corpo físico — mesmo papel do ajuste 908/1024 do asset anterior.
+    this.playerVisual = this.add.sprite(400, 515, sheetKey('idle'), 0);
+    this.playerVisual.setOrigin(0.5, VISUAL_ORIGIN_Y);
+    // Escala inteira ×2 (48x32 -> caixa exibida 96x64), sem deformar a arte.
+    this.playerVisual.setScale(VISUAL_SCALE);
+    // A cena inicia exibindo IDLE; a partir daí a seleção de estado assume.
+    this.playerVisual.play('idle');
+    this.currentAnim = 'idle';
+    // LAND é reproduzido uma vez; ao concluir, o estado em terra é reavaliado.
+    this.playerVisual.on('animationcomplete', this.handleAnimationComplete, this);
 
     // --- Ground / platform (brown rectangle, static) ---
     const ground = this.add.rectangle(400, 560, 800, 10, 0x8b4513);
@@ -93,6 +157,109 @@ export class GameScene extends Phaser.Scene {
         Phaser.Input.Keyboard.JustDown(this.cursors.space))
     ) {
       body.setVelocityY(jumpForce);
+    }
+
+    // --- Seleção de animação pelo estado físico real (guard anti-restart) ---
+    this.updateAnimation(body);
+  }
+
+  /**
+   * Registra as 6 animações do Coxinha a partir das spritesheets aprovadas.
+   * `land` é reproduzido uma vez (repeat 0); os demais estados em loop.
+   */
+  private createAnimations(): void {
+    for (const def of SHEET_DEFS) {
+      if (this.anims.exists(def.anim)) {
+        continue;
+      }
+      this.anims.create({
+        key: def.anim,
+        frames: this.anims.generateFrameNumbers(sheetKey(def.anim), {
+          start: 0,
+          end: def.frames - 1,
+        }),
+        frameRate: def.frameRate,
+        repeat: def.repeat,
+      });
+    }
+  }
+
+  /**
+   * Deriva o estado de animação da física real do corpo e troca de animação
+   * somente quando o estado muda — a animação corrente nunca é reiniciada.
+   * Escreve apenas no visual; física e controles não são afetados.
+   */
+  private updateAnimation(body: Phaser.Physics.Arcade.Body): void {
+    const onGround = body.onFloor();
+
+    if (onGround) {
+      // Transição ar → chão: aterrissagem pendente de exibir (LAND uma vez).
+      if (this.wasAirborne) {
+        this.landPending = true;
+      }
+      this.wasAirborne = false;
+    } else {
+      this.wasAirborne = true;
+      this.landPending = false;
+    }
+
+    const next = this.resolveAnimState(body, onGround);
+    if (next !== this.currentAnim) {
+      this.playAnim(next);
+    }
+
+    // Espelha o sprite apenas durante o movimento horizontal, preservando a
+    // face anterior quando o personagem para ou está no ar sem input.
+    if (Math.abs(body.velocity.x) > 0) {
+      this.playerVisual.setFlipX(body.velocity.x < 0);
+    }
+  }
+
+  /**
+   * Estado-alvo da animação conforme a física atual:
+   * - no ar: subindo → `jump`, descendo → `fall`, ápice (v.y == 0) mantém o anterior;
+   * - em terra: movendo → `run` (Shift) / `walk`; parado → `land` enquanto a
+   *   aterrissagem estiver pendente, senão `idle`.
+   */
+  private resolveAnimState(
+    body: Phaser.Physics.Arcade.Body,
+    onGround: boolean
+  ): CoxinhaAnim {
+    if (!onGround) {
+      const vy = body.velocity.y;
+      if (vy < 0) {
+        return 'jump';
+      }
+      if (vy > 0) {
+        return 'fall';
+      }
+      // Ápice do salto: mantém o estado anterior para não flutuar nas bordas.
+      return this.currentAnim ?? 'idle';
+    }
+
+    if (Math.abs(body.velocity.x) > 0) {
+      // WALK/RUN têm prioridade sobre LAND: iniciar a movimentação no instante
+      // do pouso substitui a aterrissagem imediatamente (responsividade).
+      this.landPending = false;
+      return this.shiftKey.isDown ? 'run' : 'walk';
+    }
+
+    if (this.landPending) {
+      return 'land';
+    }
+    return 'idle';
+  }
+
+  /** Aplica a animação (chamada apenas em mudança de estado). */
+  private playAnim(anim: CoxinhaAnim): void {
+    this.playerVisual.play(anim);
+    this.currentAnim = anim;
+  }
+
+  /** Ao concluir o LAND, libera a aterrissagem e reavalia o estado em terra. */
+  private handleAnimationComplete(animation: Phaser.Animations.Animation): void {
+    if (animation.key === 'land') {
+      this.landPending = false;
     }
   }
 

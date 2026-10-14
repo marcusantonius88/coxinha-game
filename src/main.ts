@@ -7,6 +7,13 @@ const config: Phaser.Types.Core.GameConfig = {
   height: 600,
   backgroundColor: '#87CEEB',
   parent: 'game',
+  // Renderização pixel-art: texturas com filtro NEAREST (sem borrão na ampliação
+  // ×2 das spritesheets 48×32) e desenho em posições inteiras. Correção apenas
+  // de renderização — física, controles e animações permanecem intactos.
+  render: {
+    pixelArt: true,
+    roundPixels: true,
+  },
   physics: {
     default: 'arcade',
     arcade: {
