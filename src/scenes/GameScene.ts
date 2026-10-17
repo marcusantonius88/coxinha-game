@@ -5,6 +5,8 @@ import runSheetUrl from '../../assets/coxinha/animations/coxinha_run_spritesheet
 import jumpSheetUrl from '../../assets/coxinha/animations/coxinha_jump_spritesheet.png';
 import fallSheetUrl from '../../assets/coxinha/animations/coxinha_fall_spritesheet.png';
 import landSheetUrl from '../../assets/coxinha/animations/coxinha_land_spritesheet.png';
+import slimeIdleSheetUrl from '../../assets/enemies/slime/slime_idle_spritesheet.png';
+import slimeDefeatSheetUrl from '../../assets/enemies/slime/slime_defeat_spritesheet.png';
 
 /** Estados de animação do Coxinha (chaves de animação registradas no Phaser). */
 type CoxinhaAnim = 'idle' | 'walk' | 'run' | 'jump' | 'fall' | 'land';
@@ -45,10 +47,41 @@ function sheetKey(anim: CoxinhaAnim): string {
   return `${anim}-sheet`;
 }
 
+/** Estados de animação do inimigo slime (chaves de animação no Phaser). */
+type SlimeAnim = 'slime-idle' | 'slime-defeat';
+
+/** Definição de uma spritesheet aprovada do inimigo slime. */
+interface SlimeSheetDef {
+  anim: SlimeAnim;
+  frames: number;    // quantidade de quadros da spritesheet
+  frameRate: number; // FPS da animação
+  repeat: number;    // -1 = loop; 0 = reprodução única (DEFEAT)
+  url: string;
+}
+
+// Spritesheets aprovadas em assets/enemies/slime/ (PNG RGBA, quadros 64×48 px).
+const SLIME_FRAME_WIDTH = 64;
+const SLIME_FRAME_HEIGHT = 48;
+
+// Linha de base dos pés do slime: nos quadros de IDLE o pixel opaco mais baixo é a
+// linha y=39 (y=40..47 transparentes). A origem 40/48 alinha a base com body.bottom.
+const SLIME_VISUAL_ORIGIN_Y = 40 / 48;
+
+const SLIME_SHEET_DEFS: readonly SlimeSheetDef[] = [
+  { anim: 'slime-idle', frames: 4, frameRate: 6, repeat: -1, url: slimeIdleSheetUrl },
+  { anim: 'slime-defeat', frames: 4, frameRate: 12, repeat: 0, url: slimeDefeatSheetUrl },
+];
+
+/** Chave de textura de uma spritesheet do slime. */
+function slimeSheetKey(anim: SlimeAnim): string {
+  return `${anim}-sheet`;
+}
+
 export class GameScene extends Phaser.Scene {
   private playerBody!: Phaser.GameObjects.Rectangle;  // corpo físico (invisível)
   private playerVisual!: Phaser.GameObjects.Sprite;   // representação visual (sprite animado)
-  private enemy!: Phaser.GameObjects.Rectangle;       // primeiro inimigo (hitbox própria)
+  private enemy!: Phaser.GameObjects.Rectangle;       // primeiro inimigo (corpo físico invisível)
+  private enemyVisual!: Phaser.GameObjects.Sprite;    // representação visual do inimigo (slime)
   private enemyCollider!: Phaser.Physics.Arcade.Collider;
   private enemyDefeated = false;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -74,11 +107,19 @@ export class GameScene extends Phaser.Scene {
         frameHeight: FRAME_HEIGHT,
       });
     }
+    // Carrega as spritesheets aprovadas do inimigo slime (quadros 64×48, RGBA).
+    for (const def of SLIME_SHEET_DEFS) {
+      this.load.spritesheet(slimeSheetKey(def.anim), def.url, {
+        frameWidth: SLIME_FRAME_WIDTH,
+        frameHeight: SLIME_FRAME_HEIGHT,
+      });
+    }
   }
 
   create(): void {
-    // --- Animações do protagonista (6 estados, FPS e repeat definidos acima) ---
+    // --- Animações (6 estados do protagonista + 2 do inimigo slime) ---
     this.createAnimations();
+    this.createEnemyAnimations();
 
     // --- Corpo físico invisível (hitbox 30x30 preservada do jogo-inicial) ---
     this.playerBody = this.add.rectangle(400, 500, 30, 30);
@@ -109,11 +150,27 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.playerBody, ground);
 
     // --- Inimigo base (primeiro inimigo da cena, permanece parado) ---
-    // Retângulo temporário 40x40 (nenhum asset de inimigo existe no projeto).
+    // Corpo físico estático 40x40 (topo y=515, base y=555 = linha do chão),
+    // invisível: a colisão usa exclusivamente este corpo.
     // Topo da plataforma = 560 - 10/2 = 555 => centro y = 555 - 40/2 = 535.
     // Posicionado à direita do ponto de aparição do Coxinha (x: 400).
     this.enemy = this.add.rectangle(600, 535, 40, 40, 0x2e8b57);
+    this.enemy.setVisible(false);
     this.physics.add.existing(this.enemy, true); // corpo estático: inimigo parado
+
+    // --- Visual do inimigo: sprite do slime, independente do corpo físico ---
+    // Ancorado pelos pés na base do corpo (origem medida nos PNGs, baseline y=39).
+    const enemyBody = this.enemy.body as Phaser.Physics.Arcade.StaticBody;
+    this.enemyVisual = this.add.sprite(
+      enemyBody.x + enemyBody.width / 2,
+      enemyBody.bottom,
+      slimeSheetKey('slime-idle'),
+      0
+    );
+    this.enemyVisual.setOrigin(0.5, SLIME_VISUAL_ORIGIN_Y);
+    this.enemyVisual.play('slime-idle'); // IDLE em loop enquanto o inimigo estiver ativo
+    // DEFEAT roda uma única vez; ao concluir, visual e corpo são removidos juntos.
+    this.enemyVisual.on('animationcomplete', this.handleEnemyDefeatComplete, this);
 
     // Colisão sólida em todas as direções; a callback decide se é uma pisada.
     this.enemyCollider = this.physics.add.collider(
@@ -175,6 +232,27 @@ export class GameScene extends Phaser.Scene {
       this.anims.create({
         key: def.anim,
         frames: this.anims.generateFrameNumbers(sheetKey(def.anim), {
+          start: 0,
+          end: def.frames - 1,
+        }),
+        frameRate: def.frameRate,
+        repeat: def.repeat,
+      });
+    }
+  }
+
+  /**
+   * Registra as animações do inimigo slime a partir das spritesheets aprovadas.
+   * `slime-idle` em loop enquanto ativo; `slime-defeat` reproduzida uma única vez.
+   */
+  private createEnemyAnimations(): void {
+    for (const def of SLIME_SHEET_DEFS) {
+      if (this.anims.exists(def.anim)) {
+        continue;
+      }
+      this.anims.create({
+        key: def.anim,
+        frames: this.anims.generateFrameNumbers(slimeSheetKey(def.anim), {
           start: 0,
           end: def.frames - 1,
         }),
@@ -297,14 +375,35 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Pisada confirmada: derrota o inimigo (deixa de ser exibido e de colidir).
+    // Pisada confirmada: derrota o inimigo imediatamente — a flag impede
+    // reprocessamento, o colisor desativa a participação em novas colisões e
+    // o DEFEAT do slime é reproduzido uma única vez (a remoção do visual e do
+    // corpo acontece na animationcomplete, ponto único de destruição).
     this.enemyDefeated = true;
     this.enemyCollider.active = false;
-    this.enemy.destroy();
+    this.enemyVisual.play('slime-defeat');
 
     // Impulso para cima menor que o salto normal (-920), razão 0,75
     // (-690/-920). O inimigo estático
     // zera a velocidade na separação, então aplicamos o impulso em seguida.
     playerBody.setVelocityY(-690);
+  }
+
+  /**
+   * Ao concluir o `slime-defeat`, remove visual e corpo físico do inimigo.
+   * Proteção contra execução duplicada: cada elemento só é destruído se ainda
+   * estiver ativo (a flag `enemyDefeated` + colisor inativo já bloqueiam novas
+   * derrotas; este método é o ponto único de remoção).
+   */
+  private handleEnemyDefeatComplete(animation: Phaser.Animations.Animation): void {
+    if (animation.key !== 'slime-defeat') {
+      return;
+    }
+    if (this.enemyVisual.active) {
+      this.enemyVisual.destroy();
+    }
+    if (this.enemy.active) {
+      this.enemy.destroy();
+    }
   }
 }
