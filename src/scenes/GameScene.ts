@@ -77,11 +77,32 @@ function slimeSheetKey(anim: SlimeAnim): string {
   return `${anim}-sheet`;
 }
 
+/** Estrutura estática do cenário: retângulo sólido (centro x,y e tamanho). */
+interface SceneStructure {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+// Layout aprovado da change cenario-plataformas (design.md, Decisão 2):
+// coordenadas inteiras e cor idêntica ao chão — renderização pixel-perfect.
+// Corredor spawn (x≈400) → slime (x=560..630) livre de estruturas.
+const SCENE_STRUCTURE_COLOR = 0x8b4513;
+
+const SCENE_STRUCTURES: readonly SceneStructure[] = [
+  { x: 135, y: 465, width: 190, height: 20 }, // P1: x=40..230, topo y=455 (+100 px)
+  { x: 300, y: 530, width: 40, height: 50 },  // Obstáculo A: x=280..320, topo y=505 (+50 px)
+  { x: 350, y: 525, width: 40, height: 60 },  // Obstáculo B: x=330..370, topo y=495 (+60 px)
+  { x: 705, y: 435, width: 110, height: 20 }, // P2: x=650..760, topo y=425 (+130 px)
+];
+
 export class GameScene extends Phaser.Scene {
   private playerBody!: Phaser.GameObjects.Rectangle;  // corpo físico (invisível)
   private playerVisual!: Phaser.GameObjects.Sprite;   // representação visual (sprite animado)
   private enemy!: Phaser.GameObjects.Rectangle;       // primeiro inimigo (corpo físico invisível)
   private enemyVisual!: Phaser.GameObjects.Sprite;    // representação visual do inimigo (slime)
+  private platforms!: Phaser.Physics.Arcade.StaticGroup; // plataformas e obstáculos do cenário
   private enemyCollider!: Phaser.Physics.Arcade.Collider;
   private enemyDefeated = false;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -148,6 +169,23 @@ export class GameScene extends Phaser.Scene {
 
     // Collision between player body and ground
     this.physics.add.collider(this.playerBody, ground);
+
+    // --- Cenário: plataformas elevadas e obstáculos sólidos (cenario-plataformas) ---
+    // Retângulos estáticos, sólidos em todas as direções, cor idêntica ao chão.
+    // Nenhum parâmetro de física, controle ou animação é afetado por eles.
+    this.platforms = this.physics.add.staticGroup();
+    for (const structureDef of SCENE_STRUCTURES) {
+      const structure = this.add.rectangle(
+        structureDef.x,
+        structureDef.y,
+        structureDef.width,
+        structureDef.height,
+        SCENE_STRUCTURE_COLOR
+      );
+      this.physics.add.existing(structure, true); // corpo estático: sólido imóvel
+      this.platforms.add(structure);
+    }
+    this.physics.add.collider(this.playerBody, this.platforms);
 
     // --- Inimigo base (primeiro inimigo da cena, permanece parado) ---
     // Corpo físico estático 40x40 (topo y=515, base y=555 = linha do chão),
