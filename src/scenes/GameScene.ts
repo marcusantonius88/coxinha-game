@@ -33,6 +33,10 @@ const VISUAL_ORIGIN_Y = 31 / 32;
 // Escala inteira ×2: caixa exibida 96×64 px, idêntica à do Coxinha anterior.
 const VISUAL_SCALE = 2;
 
+// Dimensões do mundo (3 × a viewport de 800 px, múltiplo exato).
+const WORLD_WIDTH = 2400;
+const WORLD_HEIGHT = 600;
+
 const SHEET_DEFS: readonly CoxinhaSheetDef[] = [
   { anim: 'idle', frames: 4, frameRate: 6, repeat: -1, url: idleSheetUrl },
   { anim: 'walk', frames: 8, frameRate: 10, repeat: -1, url: walkSheetUrl },
@@ -85,16 +89,28 @@ interface SceneStructure {
   height: number;
 }
 
-// Layout aprovado da change cenario-plataformas (design.md, Decisão 2):
+// Layout aprovado da change camera-fase-longa (design.md, Decisão 5):
+// 3 atos de 800 px, 12 estruturas cobrindo x ∈ [140, 2330].
 // coordenadas inteiras e cor idêntica ao chão — renderização pixel-perfect.
-// Corredor spawn (x≈400) → slime (x=560..630) livre de estruturas.
+// Corredor spawn (x 0..120) → slime (x=600) livre de estruturas.
 const SCENE_STRUCTURE_COLOR = 0x8b4513;
 
 const SCENE_STRUCTURES: readonly SceneStructure[] = [
-  { x: 135, y: 465, width: 190, height: 20 }, // P1: x=40..230, topo y=455 (+100 px)
-  { x: 300, y: 530, width: 40, height: 50 },  // Obstáculo A: x=280..320, topo y=505 (+50 px)
-  { x: 350, y: 525, width: 40, height: 60 },  // Obstáculo B: x=330..370, topo y=495 (+60 px)
-  { x: 705, y: 435, width: 110, height: 20 }, // P2: x=650..760, topo y=425 (+130 px)
+  // Ato 1 (x 0..800)
+  { x: 235, y: 465, width: 190, height: 20 },  // P1: x=140..330, topo y=455 (+100 px)
+  { x: 380, y: 530, width: 40, height: 50 },   // Obstáculo A: x=360..400, topo y=505 (+50 px)
+  { x: 430, y: 525, width: 40, height: 60 },   // Obstáculo B: x=410..450, topo y=495 (+60 px)
+  { x: 610, y: 435, width: 180, height: 20 },  // P2: x=520..700, topo y=425 (+130 px)
+  // Ato 2 (x 800..1600)
+  { x: 1010, y: 455, width: 220, height: 20 }, // P3: x=900..1120, topo y=445 (+110 px)
+  { x: 1220, y: 530, width: 40, height: 50 },  // Obstáculo C: x=1200..1240, topo y=505 (+50 px)
+  { x: 1270, y: 525, width: 40, height: 60 },  // Obstáculo D: x=1250..1290, topo y=495 (+60 px)
+  { x: 1470, y: 445, width: 180, height: 20 }, // P4: x=1380..1560, topo y=435 (+120 px)
+  // Ato 3 (x 1600..2400)
+  { x: 1800, y: 465, width: 200, height: 20 }, // P5: x=1700..1900, topo y=455 (+100 px)
+  { x: 2020, y: 530, width: 40, height: 50 },  // Obstáculo E: x=2000..2040, topo y=505 (+50 px)
+  { x: 2070, y: 525, width: 40, height: 60 },  // Obstáculo F: x=2050..2090, topo y=495 (+60 px)
+  { x: 2240, y: 435, width: 180, height: 20 }, // P6: x=2150..2330, topo y=425 (+130 px)
 ];
 
 export class GameScene extends Phaser.Scene {
@@ -142,6 +158,10 @@ export class GameScene extends Phaser.Scene {
     this.createAnimations();
     this.createEnemyAnimations();
 
+    // --- Limites do mundo (Arcade physics): o jogador fica restrito ao mundo,
+    // não mais à viewport (task 1.2).
+    this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
     // --- Corpo físico invisível (hitbox 30x30 preservada do jogo-inicial) ---
     this.playerBody = this.add.rectangle(400, 500, 30, 30);
     this.playerBody.setVisible(false);
@@ -149,6 +169,12 @@ export class GameScene extends Phaser.Scene {
     const body = this.playerBody.body as unknown as Phaser.Physics.Arcade.Body;
     body.setCollideWorldBounds(true);
     body.setVelocity(0);
+
+    // --- Câmera horizontal: segue o Coxinha no eixo X, limitada ao mundo ---
+    // lerpX=0.1 = rolagem suave; lerpY=0 = câmera verticalmente fixa;
+    // roundPixels=true = sem tremor sub-pixel na arte pixelada (task 3.1).
+    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    this.cameras.main.startFollow(this.playerBody, true, 0.1, 0);
 
     // --- Representação visual separada (sprite animado Coxinha, segue o corpo) ---
     // Sprite 48×32 com a origem alinhando a base dos pés (linha y=30 do frame)
@@ -164,7 +190,7 @@ export class GameScene extends Phaser.Scene {
     this.playerVisual.on('animationcomplete', this.handleAnimationComplete, this);
 
     // --- Ground / platform (brown rectangle, static) ---
-    const ground = this.add.rectangle(400, 560, 800, 10, 0x8b4513);
+    const ground = this.add.rectangle(WORLD_WIDTH / 2, 560, WORLD_WIDTH, 10, 0x8b4513);
     this.physics.add.existing(ground, true);
 
     // Collision between player body and ground
@@ -224,6 +250,11 @@ export class GameScene extends Phaser.Scene {
 
   update(): void {
     const body = this.playerBody.body as unknown as Phaser.Physics.Arcade.Body;
+
+    // Sincronizar o Rectangle com o corpo físico (fonte de verdade).
+    // O Rectangle não é atualizado pelo Arcade Body automaticamente; sem isso
+    // a câmera leria playerBody.x desatualizado (task 3.3).
+    this.playerBody.setPosition(body.center.x, body.center.y);
 
     // Sincronizar visual com corpo físico (separação arquitetural)
     // Ancorar as patas no bottom-center do corpo físico.
