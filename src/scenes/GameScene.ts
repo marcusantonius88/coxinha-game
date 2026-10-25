@@ -163,7 +163,8 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
     // --- Corpo físico invisível (hitbox 30x30 preservada do jogo-inicial) ---
-    this.playerBody = this.add.rectangle(400, 500, 30, 30);
+    // Spawn no corredor livre (x 0..120), antes da primeira estrutura (P1 em x=140).
+    this.playerBody = this.add.rectangle(80, 500, 30, 30);
     this.playerBody.setVisible(false);
     this.physics.add.existing(this.playerBody);
     const body = this.playerBody.body as unknown as Phaser.Physics.Arcade.Body;
@@ -179,7 +180,7 @@ export class GameScene extends Phaser.Scene {
     // --- Representação visual separada (sprite animado Coxinha, segue o corpo) ---
     // Sprite 48×32 com a origem alinhando a base dos pés (linha y=30 do frame)
     // na base do corpo físico — mesmo papel do ajuste 908/1024 do asset anterior.
-    this.playerVisual = this.add.sprite(400, 515, sheetKey('idle'), 0);
+    this.playerVisual = this.add.sprite(80, 515, sheetKey('idle'), 0);
     this.playerVisual.setOrigin(0.5, VISUAL_ORIGIN_Y);
     // Escala inteira ×2 (48x32 -> caixa exibida 96x64), sem deformar a arte.
     this.playerVisual.setScale(VISUAL_SCALE);
@@ -251,13 +252,11 @@ export class GameScene extends Phaser.Scene {
   update(): void {
     const body = this.playerBody.body as unknown as Phaser.Physics.Arcade.Body;
 
-    // Sincronizar o Rectangle com o corpo físico (fonte de verdade).
-    // O Rectangle não é atualizado pelo Arcade Body automaticamente; sem isso
-    // a câmera leria playerBody.x desatualizado (task 3.3).
-    this.playerBody.setPosition(body.center.x, body.center.y);
-
     // Sincronizar visual com corpo físico (separação arquitetural)
     // Ancorar as patas no bottom-center do corpo físico.
+    // A posição do Rectangle (alvo da câmera) é mantida por Body.postUpdate(),
+    // que sincroniza o game object com a posição do corpo após a resolução
+    // de colisões — evitando qualquer interferência na física.
     if (this.playerVisual && body) {
       this.playerVisual.setPosition(body.center.x, body.bottom);
     }
