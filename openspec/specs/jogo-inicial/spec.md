@@ -37,7 +37,7 @@ O personagem SHALL utilizar `assets/coxinha/coxinha-idle.png` como representaç�
 - **AND** o personagem é afetado pela gravidade
 - **AND** o personagem permanece sobre a plataforma quando estiver em contato com ela
 - **AND** os controles existentes continuam funcionando
-- **AND** os limites horizontais da área de jogo continuam sendo respeitados
+- **AND** os limites horizontais do mundo continuam sendo respeitados
 
 ### Requirement: Personagem temporário controlável
 
@@ -126,16 +126,18 @@ O sistema SHALL aplicar gravidade ao personagem utilizando a física ARCADE do P
 - **THEN** a velocidade vertical do personagem é afetada pela gravidade
 - **AND** o personagem retorna à plataforma
 
-### Requirement: Limite horizontal da tela
+### Requirement: Limite horizontal do mundo
 
-O sistema SHALL impedir que o personagem ultrapasse os limites horizontais da área de jogo.
+O sistema SHALL impedir que o personagem ultrapasse os limites horizontais do mundo, que é mais largo que a área de jogo visível.
+
+O limite horizontal aplicável ao personagem SHALL ser o limite do mundo, e não o da borda da tela.
 
 #### Scenario: Personagem atinge o limite esquerdo
 
-- **WHEN** o personagem tenta ultrapassar o limite esquerdo da área de jogo
-- **THEN** o personagem permanece dentro da área visível
+- **WHEN** o personagem tenta ultrapassar o limite esquerdo do mundo
+- **THEN** o personagem permanece dentro da área do mundo
 
 #### Scenario: Personagem atinge o limite direito
 
-- **WHEN** o personagem tenta ultrapassar o limite direito da área de jogo
-- **THEN** o personagem permanece dentro da área visível
+- **WHEN** o personagem tenta ultrapassar o limite direito do mundo
+- **THEN** o personagem permanece dentro da área do mundo

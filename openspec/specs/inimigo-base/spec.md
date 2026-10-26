@@ -133,7 +133,7 @@ A implementação desta change SHALL NÃO alterar:
 - hitbox do personagem;
 - colisão do personagem com a plataforma;
 - controles de teclado;
-- limites horizontais da área de jogo.
+- limites horizontais do mundo.
 
 #### Scenario: Movimentação preservada
 

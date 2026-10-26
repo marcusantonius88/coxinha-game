@@ -20,13 +20,13 @@ A introdução das animações SHALL NOT alterar intencionalmente:
 - hitbox;
 - colisão com a plataforma;
 - controles de teclado;
-- limites horizontais da área de jogo;
+- limites horizontais do mundo;
 - impulso vertical da pisada nos inimigos;
 - mecânica de derrota do inimigo ao pular sobre ele.
 
 #### Scenario: Movimentação preservada
 
-- **WHEN** o jogador utiliza os controles existentes
+- **WHEN** o personagem utiliza os controles existentes
 - **THEN** o personagem continua podendo andar para esquerda e direita
 - **AND** o personagem continua podendo correr utilizando `Shift`
 - **AND** o personagem continua podendo pular utilizando `ArrowUp` ou `Space`
