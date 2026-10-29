@@ -15,7 +15,7 @@
 - [ ] 2.2 Criar os 4 `tileSprite` em `create()`, na ordem céu → serra → caatinga → vegetação, antes do chão e plataformas — verificação: camadas visíveis atrás do cenário no navegador.
 - [ ] 2.3 Atualizar `tilePositionX` de cada camada em `update()` com `Math.floor(scrollX * fator)` — verificação: parallax suave durante a rolagem horizontal.
 
-## 3. Validação visual e regressão
+## 3. Validação visual e regressão.
 
 - [ ] 3.1 Confirmar que o parallax para nos limites do mundo (x=0 e x=2400), sem áreas vazias — verificação: navegador, câmera nos extremos.
 - [ ] 3.2 Confirmar renderização pixel-perfect (sem tremor, sem borrão, posições inteiras) — verificação: inspeção visual durante scroll.
