@@ -66,12 +66,31 @@ Isso garante cobertura completa durante todo o deslocamento de parallax sem áre
 
 As camadas são adicionadas antes do chão e plataformas, em ordem de trás para frente (céu primeiro, vegetação por último entre as camadas de fundo). Assim, plataformas, obstáculos, slime e jogador ficam sempre sobrepostas ao fundo.
 
-### Decisão 5 — Produção de assets (pixel art coerente)
+### Decisão 5 — Especificação de assets (fornecidos e aprovados externamente)
 
-- Resolução base: texturas com altura 600 px (ou múltiplo inteiro que caiba em 600 sem escala fracionária).
-- Largura das texturas: múltiplo de 800 px para tiling sem costura visível.
-- Estilo: paleta de cores terrosa (areia, ocre, terracota, verde seco), contornos nítidos de 1–2 px, sem degradês ou antialiasing.
-- Ferramenta sugerida: Aseprite ou similar, exportando PNG com filtro desligado.
+Os 4 PNGs de fundo são produzidos e aprovados externamente (fora do Cline). O Cline não desenha nem produz assets. A integração só inicia após os 4 arquivos estarem presentes no repositório e aprovados.
+
+Especificação contratada para cada asset:
+
+| Item | Especificação |
+|------|--------------|
+| Quantidade | 4 PNGs (céu, serra, caatinga, vegetação) |
+| Pasta | `assets/background/nordestino/` |
+| Altura | 600 px (igual à altura do mundo/viewport) |
+| Largura | Mínimo conforme tabela da Decisão 3; múltiplo de 800 px para tiling |
+| Transparência | Canal alpha onde não houver arte; camadas atrás visíveis em áreas transparentes |
+| Paleta | Cores terrosas (areia, ocre, terracota, verde seco, azul céu) coerentes com o estilo existente |
+| Estilo | Pixel art: cores sólidas, contornos nítidos 1–2 px, sem degradês, sem antialiasing, sem borrão |
+| Repetição | Tiling horizontal sem costura visível |
+| Filtro | nearest-neighbor (sem interpolação) |
+
+## Risks / Trade-offs
+
+- **[tilePositionX com valores não inteiros]** → tremor sub-pixel na arte pixelada. *Mitigação*: aplicar `Math.floor()` antes de atribuir a `tilePositionX`; `roundPixels: true` já está ativo.
+- **[Áreas vazias nas extremidades do parallax]** → camada não cobre todo o deslocamento. *Mitigação*: dimensões calculadas na Decisão 3 cobrem o pior caso (fator 0.75 → deslocamento 1200 px); largura mínima dos assets garante cobertura.
+- **[Desalinhamento vertical com o chão]** → fundo parece "flutuar". *Mitigação*: todas as camadas têm altura 600 px e `y = 0`, alinhadas ao topo do mundo; o chão fica em y=555 como antes.
+- **[Impacto de desempenho]** → 4 tileSprites adicionais. *Mitigação*: tileSprites são leves (uma textura repetida), sem física; impacto desprezível em desktop/mobile.
+- **[Assets ausentes ou não aprovados]** → implementação bloqueada. *Mitigação*: tarefa 1.1 verifica presença e aprovação dos 4 assets antes de qualquer alteração de código.
 
 ## Risks / Trade-offs
 

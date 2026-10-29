@@ -6,17 +6,25 @@ Adicionar camadas de fundo em pixel art inspiradas no Nordeste brasileiro, com r
 
 ## ADDED Requirements
 
-### Requirement: Camadas de fundo do Nordeste brasileiro
+### Requirement: Camadas de fundo do Nordeste brasileiro (assets pré-aprovados)
 
-O sistema SHALL incluir camadas de fundo estáticas e em movimento (parallax) com tema nordestino (céu, serras, caatinga, formações rochosas, vegetação rala), dispostas atrás de todas as plataformas e obstáculos existentes.
+O sistema SHALL incluir exatamente 4 camadas de fundo com tema nordestino (céu, serras distantes, caatinga, vegetação do primeiro plano), dispostas atrás de todas as plataformas e obstáculos existentes.
 
-Cada camada SHALL ser representada por textura PNG com estilo pixel art coerente ao já utilizado no projeto (cores sólidas, contornos nítidos, coordenadas inteiras).
+Os 4 PNGs de fundo SHALL ser fornecidos e aprovados externamente (fora do Cline) antes de qualquer implementação. O Cline se limita à integração dos assets já aprovados.
+
+Cada camada SHALL ser representada por textura PNG com as seguintes especificações:
+
+- **Dimensões**: altura 600 px (igual à altura do mundo/viewport); largura mínima calculada para cobrir o deslocamento máximo de parallax (ver tabela na seção de dimensões).
+- **Transparência**: fundo transparente (alpha canal) onde não houver arte, permitindo que camadas atrás sejam visíveis.
+- **Paleta**: cores terrosas (areia, ocre, terracota, verde seco, azul céu), coerentes com o estilo pixel art já existente no projeto.
+- **Repetição horizontal**: textura projetada para tiling horizontal sem costura visível.
+- **Estilo**: cores sólidas, contornos nítidos de 1–2 px, sem degradês, sem antialiasing, sem borrão.
 
 #### Scenario: Fundo preenche toda a fase
 
-- **WHEN** a cena é carregada
-- **THEN** as camadas de fundo cobrem integralmente a área do mundo (2400×600 px)
-- **AND** não há áreas vazias ou sem textura atrás do cenário
+- **WHEN** a cena é carregada com os 4 assets aprovados presentes
+- **THEN** as 4 camadas de fundo cobrem integralmente a área do mundo (2400×600 px)
+- **AND** não há áreas vazias ou sem textura atrás do cenário em nenhum ponto da travessia (x de 0 a 2400)
 
 #### Scenario: Estilo pixel art preservado
 
@@ -24,6 +32,13 @@ Cada camada SHALL ser representada por textura PNG com estilo pixel art coerente
 - **THEN** as texturas usam filtro nearest-neighbor (sem borrão)
 - **AND** as posições de renderização são inteiras (sem sub-pixel)
 - **AND** a escala de exibição é inteira (sem deformação)
+- **AND** as 4 texturas correspondem exatamente aos assets aprovados externamente
+
+#### Scenario: Bloqueio até aprovação dos assets
+
+- **WHEN** os 4 PNGs de fundo não estão presentes no repositório ou não foram aprovados
+- **THEN** nenhuma alteração de implementação é iniciada em `src/scenes/GameScene.ts`
+- **AND** a change permanece em estado de planejamento apenas
 
 ### Requirement: Rolagem paralaxe vinculada à câmera
 

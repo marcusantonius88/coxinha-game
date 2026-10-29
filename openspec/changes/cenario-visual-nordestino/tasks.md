@@ -1,11 +1,15 @@
 # Tasks
 
-## 1. Assets de fundo (pixel art Nordeste)
+## 1. Pré-condição: assets aprovados presentes
 
-- [ ] 1.1 Produzir 4 PNGs de fundo (céu, serra, caatinga, vegetação) em `assets/background/nordestino/`, estilo pixel art coerente, altura 600 px, largura múltipla de 800 px — verificação: arquivos existem e dimensões conferidas.
-- [ ] 1.2 Confirmar que as texturas usam filtro nearest-neighbor (sem borrão/antialiasing) — verificação: inspeção visual dos PNGs.
+- [ ] 1.1 Verificar que os 4 PNGs de fundo (céu, serra, caatinga, vegetação) estão presentes em `assets/background/nordestino/` — verificação: `ls assets/background/nordestino/` retorna 4 arquivos PNG.
+- [ ] 1.2 Confirmar que os 4 assets foram aprovados externamente (fora do Cline) — verificação: aprovação documentada antes de prosseguir.
+- [ ] 1.3 Conferir dimensões de cada asset (altura 600 px, largura múltipla de 800 px, mínima conforme tabela da Decisão 3) — verificação: inspeção dos arquivos PNG.
+- [ ] 1.4 Confirmar estilo pixel art coerente (cores sólidas, contornos nítidos, sem borrão, transparência onde aplicável) — verificação: inspeção visual dos PNGs aprovados.
 
-## 2. Integração no GameScene
+> **Bloqueio**: nenhuma tarefa de implementação (grupo 2) pode ser iniciada enquanto os 4 assets não estiverem presentes e aprovados.
+
+## 2. Integração no GameScene (após aprovação dos assets)
 
 - [ ] 2.1 Adicionar pré-carregamento das 4 texturas de fundo em `preload()` — verificação: `npm run build` passa sem erro de asset ausente.
 - [ ] 2.2 Criar os 4 `tileSprite` em `create()`, na ordem céu → serra → caatinga → vegetação, antes do chão e plataformas — verificação: camadas visíveis atrás do cenário no navegador.
