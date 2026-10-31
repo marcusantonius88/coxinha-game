@@ -7,6 +7,10 @@ import fallSheetUrl from '../../assets/coxinha/animations/coxinha_fall_spriteshe
 import landSheetUrl from '../../assets/coxinha/animations/coxinha_land_spritesheet.png';
 import slimeIdleSheetUrl from '../../assets/enemies/slime/slime_idle_spritesheet.png';
 import slimeDefeatSheetUrl from '../../assets/enemies/slime/slime_defeat_spritesheet.png';
+import ceuBgUrl from '../../assets/backgrounds/nordestino/ceu.png';
+import montanhasBgUrl from '../../assets/backgrounds/nordestino/montanhas.png';
+import vegetacaoMediaBgUrl from '../../assets/backgrounds/nordestino/vegetacao-media.png';
+import vegetacaoProximaBgUrl from '../../assets/backgrounds/nordestino/vegetacao-proxima.png';
 
 /** Estados de animação do Coxinha (chaves de animação registradas no Phaser). */
 type CoxinhaAnim = 'idle' | 'walk' | 'run' | 'jump' | 'fall' | 'land';
@@ -124,6 +128,12 @@ export class GameScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private shiftKey!: Phaser.Input.Keyboard.Key;
 
+  // Camadas de fundo com parallax (cenario-visual-nordestino).
+  private ceuBg!: Phaser.GameObjects.TileSprite;
+  private montanhasBg!: Phaser.GameObjects.TileSprite;
+  private vegetacaoMediaBg!: Phaser.GameObjects.TileSprite;
+  private vegetacaoProximaBg!: Phaser.GameObjects.TileSprite;
+
   /** Animação atualmente exibida — guarda anti-restart da mesma animação. */
   private currentAnim: CoxinhaAnim | null = null;
   /** true enquanto o corpo está no ar (detecção da transição ar → chão). */
@@ -151,6 +161,12 @@ export class GameScene extends Phaser.Scene {
         frameHeight: SLIME_FRAME_HEIGHT,
       });
     }
+
+    // Carrega as 4 texturas de fundo aprovadas do cenário nordestino.
+    this.load.image('ceu-bg', ceuBgUrl);
+    this.load.image('montanhas-bg', montanhasBgUrl);
+    this.load.image('vegetacao-media-bg', vegetacaoMediaBgUrl);
+    this.load.image('vegetacao-proxima-bg', vegetacaoProximaBgUrl);
   }
 
   create(): void {
@@ -189,6 +205,15 @@ export class GameScene extends Phaser.Scene {
     this.currentAnim = 'idle';
     // LAND é reproduzido uma vez; ao concluir, o estado em terra é reavaliado.
     this.playerVisual.on('animationcomplete', this.handleAnimationComplete, this);
+
+    // --- Camadas de fundo com parallax (cenario-visual-nordestino) ---
+    // Adicionadas atrás de todos os elementos jogáveis, de trás para frente.
+    // tilePositionX sincronizado com camera.scrollX no update().
+    // Fatores: céu 0.0 (estático), montanhas 0.25, vegetação média 0.50, vegetação próxima 0.75.
+    this.ceuBg = this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'ceu-bg');
+    this.montanhasBg = this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'montanhas-bg');
+    this.vegetacaoMediaBg = this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'vegetacao-media-bg');
+    this.vegetacaoProximaBg = this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'vegetacao-proxima-bg');
 
     // --- Ground / platform (brown rectangle, static) ---
     const ground = this.add.rectangle(WORLD_WIDTH / 2, 560, WORLD_WIDTH, 10, 0x8b4513);
@@ -260,6 +285,16 @@ export class GameScene extends Phaser.Scene {
     if (this.playerVisual && body) {
       this.playerVisual.setPosition(body.center.x, body.bottom);
     }
+
+    // --- Parallax das camadas de fundo (cenario-visual-nordestino) ---
+    // tilePositionX negativo faz o fundo deslocar na mesma direção da câmera,
+    // mas mais devagar (fator < 1), criando efeito de profundidade.
+    // Math.floor garante posições inteiras (pixel-perfect, sem tremor sub-pixel).
+    const scrollX = this.cameras.main.scrollX;
+    this.ceuBg.tilePositionX = -Math.floor(scrollX * 0.0);      // céu estático
+    this.montanhasBg.tilePositionX = -Math.floor(scrollX * 0.25);
+    this.vegetacaoMediaBg.tilePositionX = -Math.floor(scrollX * 0.50);
+    this.vegetacaoProximaBg.tilePositionX = -Math.floor(scrollX * 0.75);
 
     const normalSpeed = 200;
     const runSpeed = 350;
