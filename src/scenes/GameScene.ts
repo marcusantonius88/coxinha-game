@@ -210,10 +210,23 @@ export class GameScene extends Phaser.Scene {
     // Adicionadas atrás de todos os elementos jogáveis, de trás para frente.
     // tilePositionX sincronizado com camera.scrollX no update().
     // Fatores: céu 0.0 (estático), montanhas 0.25, vegetação média 0.50, vegetação próxima 0.75.
+    // Origem (0,0) garante cobertura integral da altura (0 a 600 px); depth=-1
+    // garante renderização atrás de todo o cenário jogável.
     this.ceuBg = this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'ceu-bg');
+    this.ceuBg.setOrigin(0, 0);
+    this.ceuBg.setDepth(-1);
+
     this.montanhasBg = this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'montanhas-bg');
+    this.montanhasBg.setOrigin(0, 0);
+    this.montanhasBg.setDepth(-1);
+
     this.vegetacaoMediaBg = this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'vegetacao-media-bg');
+    this.vegetacaoMediaBg.setOrigin(0, 0);
+    this.vegetacaoMediaBg.setDepth(-1);
+
     this.vegetacaoProximaBg = this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'vegetacao-proxima-bg');
+    this.vegetacaoProximaBg.setOrigin(0, 0);
+    this.vegetacaoProximaBg.setDepth(-1);
 
     // --- Ground / platform (brown rectangle, static) ---
     const ground = this.add.rectangle(WORLD_WIDTH / 2, 560, WORLD_WIDTH, 10, 0x8b4513);
