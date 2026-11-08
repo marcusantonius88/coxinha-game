@@ -1,6 +1,6 @@
 # Tasks
 
-## 1. Pré-condição: assets aprovados presentes.
+## 1. Pré-condição: assets aprovados presentes..
 
 - [ ] 1.1 Verificar que os 4 PNGs de fundo (céu, serra, caatinga, vegetação) estão presentes em `assets/background/nordestino/` — verificação: `ls assets/background/nordestino/` retorna 4 arquivos PNG.
 - [ ] 1.2 Confirmar que os 4 assets foram aprovados externamente (fora do Cline) — verificação: aprovação documentada antes de prosseguir.
