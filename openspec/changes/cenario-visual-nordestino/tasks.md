@@ -5,7 +5,7 @@
 - [ ] 1.1 Verificar que os 4 PNGs de fundo (céu, serra, caatinga, vegetação) estão presentes em `assets/background/nordestino/` — verificação: `ls assets/background/nordestino/` retorna 4 arquivos PNG;
 - [ ] 1.2 Confirmar que os 4 assets foram aprovados externamente (fora do Cline) — verificação: aprovação documentada antes de prosseguir;
 - [ ] 1.3 Conferir dimensões de cada asset (altura 600 px, largura múltipla de 800 px, mínima conforme tabela da Decisão 3) — verificação: inspeção dos arquivos PNG;
-- [ ] 1.4 Confirmar estilo pixel art coerente (cores sólidas, contornos nítidos, sem borrão, transparência onde aplicável) — verificação: inspeção visual dos PNGs aprovados.
+- [ ] 1.4 Confirmar estilo pixel art coerente (cores sólidas, contornos nítidos, sem borrão, transparência onde aplicável) — verificação: inspeção visual dos PNGs aprovados;
 
 > **Bloqueio**: nenhuma tarefa de implementação (grupo 2) pode ser iniciada enquanto os 4 assets não estiverem presentes e aprovados.
 
