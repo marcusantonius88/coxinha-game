@@ -11,7 +11,7 @@
 
 ## 2. Integração no GameScene (após aprovação dos assets)
 
-- [ ] 2.1 Adicionar pré-carregamento das 4 texturas de fundo em `preload()` — verificação: `npm run build` passa sem erro de asset ausente.
+- [ ] 2.1 Adicionar pré-carregamento das 4 texturas de fundo em `preload()` — verificação: `npm run build` passa sem erro de asset ausente;
 - [ ] 2.2 Criar os 4 `tileSprite` em `create()`, na ordem céu → serra → caatinga → vegetação, antes do chão e plataformas — verificação: camadas visíveis atrás do cenário no navegador.
 - [ ] 2.3 Atualizar `tilePositionX` de cada camada em `update()` com `Math.floor(scrollX * fator)` — verificação: parallax suave durante a rolagem horizontal.
 
