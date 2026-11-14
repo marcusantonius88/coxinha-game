@@ -17,7 +17,7 @@
 
 ## 3. Validação visual e regressão.
 
-- [ ] 3.1 Confirmar que o parallax para nos limites do mundo (x=0 e x=2400), sem áreas vazias — verificação: navegador, câmera nos extremos.
+- [ ] 3.1 Confirmar que o parallax para nos limites do mundo (x=0 e x=2400), sem áreas vazias — verificação: navegador, câmera nos extremos;
 - [ ] 3.2 Confirmar renderização pixel-perfect (sem tremor, sem borrão, posições inteiras) — verificação: inspeção visual durante scroll.
 - [ ] 3.3 Testar regressão: spawn, salto, plataformas, slime (pisada), animações, limites do mundo continuam funcionando — verificação: checklist do `camera-fase-longa` reexecutado.
 - [ ] 3.4 Executar `npm run build` (exit 0) e `openspec validate cenario-visual-nordestino --strict` — verificação: ambos passam.
